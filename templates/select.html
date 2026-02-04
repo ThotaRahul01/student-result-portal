@@ -1,1 +1,478 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>Select Semester</title></head><body style="font-family:Arial;text-align:center;padding-top:60px;"><div style="display:inline-block;background:white;padding:30px;border-radius:10px;"><h2>Welcome {{ htno }}</h2><p>Semester 1 SGPA: {{ sem1_sgpa or 'N/A' }} &nbsp;&nbsp; Semester 2 SGPA: {{ sem2_sgpa or 'N/A' }}</p><p>CGPA: {{ cgpa or 'N/A' }}</p><form action="/result/sem1"><button type="submit">Semester 1</button></form><br><form action="/result/sem2"><button type="submit">Semester 2</button></form></div></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Semester - GCET Results Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .shape {
+            position: absolute;
+            filter: blur(60px);
+            opacity: 0.4;
+            animation: float 25s infinite;
+        }
+
+        .shape-1 {
+            width: 500px;
+            height: 500px;
+            background: #f093fb;
+            top: -150px;
+            right: -100px;
+            border-radius: 50%;
+        }
+
+        .shape-2 {
+            width: 400px;
+            height: 400px;
+            background: #f5576c;
+            bottom: -100px;
+            left: -100px;
+            border-radius: 50%;
+            animation-delay: 8s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(50px, 50px) rotate(180deg); }
+        }
+
+        /* Navigation */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 10;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 1.3rem;
+        }
+
+        .nav-brand i {
+            color: #667eea;
+            font-size: 1.5rem;
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 60px 20px;
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Welcome Card */
+        .welcome-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .welcome-subtitle {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        .htno-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 1.8rem;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-value.na {
+            color: #a0aec0;
+            font-size: 1.5rem;
+        }
+
+        /* CGPA Highlight */
+        .cgpa-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .cgpa-card .stat-icon {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .cgpa-card .stat-label {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .cgpa-card .stat-value {
+            color: white;
+            font-size: 3rem;
+        }
+
+        /* Semester Selection */
+        .selection-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 1.5rem;
+            color: #2d3748;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .semester-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        .semester-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 35px 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .semester-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+        }
+
+        .semester-btn:hover::before {
+            opacity: 1;
+        }
+
+        .semester-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+            border-color: transparent;
+        }
+
+        .semester-btn:hover * {
+            color: white;
+            position: relative;
+            z-index: 1;
+        }
+
+        .sem-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .semester-btn:hover .sem-icon {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+
+        .sem-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 10px;
+            transition: color 0.3s ease;
+        }
+
+        .sem-status {
+            color: #718096;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            color: white;
+            text-align: center;
+            padding: 25px;
+            margin-top: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        footer .developer {
+            font-weight: 700;
+            color: #ffe66d;
+            font-size: 1.1rem;
+        }
+
+        footer .dept {
+            opacity: 0.9;
+            font-size: 0.9rem;
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .welcome-title {
+                font-size: 1.5rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-university"></i>
+            <span>GCET Results Portal</span>
+        </div>
+        <a href="{{ url_for('logout') }}" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+        </a>
+    </nav>
+
+    <div class="main-content">
+        <div class="welcome-card">
+            <div class="welcome-title">Welcome Back!</div>
+            <div class="welcome-subtitle">View your academic performance</div>
+            <div class="htno-badge">
+                <i class="fas fa-id-card" style="margin-right: 10px;"></i>
+                {{ htno }}
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <div class="stat-label">Semester 1 SGPA</div>
+                <div class="stat-value {% if not sem1_sgpa %}na{% endif %}">
+                    {{ sem1_sgpa or 'N/A' }}
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="stat-label">Semester 2 SGPA</div>
+                <div class="stat-value {% if not sem2_sgpa %}na{% endif %}">
+                    {{ sem2_sgpa or 'N/A' }}
+                </div>
+            </div>
+
+            <div class="stat-card cgpa-card">
+                <div class="stat-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-label">Cumulative CGPA</div>
+                <div class="stat-value {% if not cgpa %}na{% endif %}">
+                    {{ cgpa or 'N/A' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="selection-section">
+            <div class="section-title">
+                <i class="fas fa-mouse-pointer" style="margin-right: 10px; color: #667eea;"></i>
+                Select Semester to View Results
+            </div>
+            <div class="semester-grid">
+                <a href="/result/sem1" class="semester-btn">
+                    <div class="sem-icon">
+                        <i class="fas fa-1"></i>
+                    </div>
+                    <div class="sem-title">Semester 1</div>
+                    <div class="sem-status">View detailed results</div>
+                </a>
+
+                <a href="/result/sem2" class="semester-btn">
+                    <div class="sem-icon">
+                        <i class="fas fa-2"></i>
+                    </div>
+                    <div class="sem-title">Semester 2</div>
+                    <div class="sem-status">View detailed results</div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="developer">THOTA RAHUL</div>
+        <div class="dept">STUDENT DEVELOPER | CSE DEPARTMENT</div>
+    </footer>
+</body>
+</html>
