@@ -1,1 +1,657 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>Result</title></head><body style="font-family:Arial;background:#f0f0f0;text-align:center;padding:30px;"><div style="margin-bottom:20px;"><img src='{{ url_for('static', filename='images/logo.png') }}' style='height:80px;margin-bottom:10px;'><div style='font-size:22px;font-weight:bold;color:#003366;'>GEETHANJALI COLLEGE OF ENGINEERING & TECHNOLOGY<br><span style='font-size:14px;font-weight:normal;'>...Striving Towards Perfection</span></div></div><div style='background:white;padding:30px;border-radius:10px;display:inline-block;box-shadow:0 0 10px rgba(0,0,0,0.1);margin-top:20px;'><h2>Result for {{ htno }} - Semester {{ semester }}</h2><table border='1' cellpadding='6' cellspacing='0' style='margin:auto;border-collapse:collapse;'><tr style='background:#4CAF50;color:white;'><th>Subject Code</th><th>Subject Name</th><th>Grade</th></tr>{% for code,name in subjects.items() %}<tr><td>{{ code }}</td><td>{{ name }}</td><td>{{ grades[loop.index0] }}</td></tr>{% endfor %}</table><div style='font-size:20px;font-weight:bold;margin-top:20px;'>SGPA: {{ sgpa }}</div>{% if cgpa %}<div style='font-size:20px;font-weight:bold;margin-top:10px;'>CGPA: {{ cgpa }}</div>{% endif %}<div style='font-size:18px;margin-top:10px;color:{% if result_status=='PASS' %}green{% else %}red{% endif %};'>Status: {{ result_status }}</div><br><form method="GET" action="{{ url_for('download_pdf', semester='sem'+semester) }}"><button type="submit">Download Result as PDF</button></form><p><a href='{{ url_for('logout') }}'>Logout</a></p></div><div style='margin-top:30px;font-size:14px;font-style:italic;color:#333;'>GCET DS Project by Rahul Varma</div></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results - GCET Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+        }
+
+        /* Background Animation */
+        .bg-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .shape {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: float 30s infinite;
+        }
+
+        .shape-1 {
+            width: 600px;
+            height: 600px;
+            background: #ff6b6b;
+            top: -200px;
+            left: -200px;
+            border-radius: 50%;
+        }
+
+        .shape-2 {
+            width: 500px;
+            height: 500px;
+            background: #4ecdc4;
+            bottom: -150px;
+            right: -150px;
+            border-radius: 50%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(100px, 50px) scale(1.1); }
+        }
+
+        /* Navigation */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 10;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 1.2rem;
+        }
+
+        .nav-brand img {
+            height: 40px;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .nav-btn.back {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .nav-btn.back:hover {
+            background: #e2e8f0;
+        }
+
+        .nav-btn.logout {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+        }
+
+        .nav-btn.logout:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 40px 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header Card */
+        .header-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .college-logo {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .college-logo img {
+            width: 60px;
+            height: 60px;
+            filter: brightness(0) invert(1);
+        }
+
+        .college-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .college-tagline {
+            color: #718096;
+            font-style: italic;
+            margin-bottom: 25px;
+        }
+
+        .result-info {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2d3748;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Results Card */
+        .results-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            margin-bottom: 30px;
+            animation: slideUp 0.5s ease-out 0.1s both;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th {
+            padding: 18px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+
+        tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: #f7fafc;
+            transform: scale(1.01);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 50px;
+        }
+
+        .grade-o { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+        .grade-a-plus { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+        .grade-a { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
+        .grade-b-plus { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
+        .grade-b { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .grade-c { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #744210; }
+        .grade-f { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%); color: white; }
+        .grade-ab { background: #718096; color: white; }
+
+        /* Summary Card */
+        .summary-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            margin-bottom: 30px;
+            animation: slideUp 0.5s ease-out 0.2s both;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 25px;
+            background: #f7fafc;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .summary-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .summary-label {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .summary-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .summary-value.cgpa {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .status-pass {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(17, 153, 142, 0.3);
+        }
+
+        .status-fail {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
+        }
+
+        /* Action Buttons */
+        .action-section {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+            animation: slideUp 0.5s ease-out 0.3s both;
+        }
+
+        .action-btn {
+            padding: 16px 35px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-download:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-back {
+            background: white;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-back:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-3px);
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            color: white;
+            text-align: center;
+            padding: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        footer .developer {
+            font-weight: 700;
+            color: #ffe66d;
+            font-size: 1.2rem;
+        }
+
+        footer .dept {
+            opacity: 0.9;
+            font-size: 0.95rem;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        /* Print Styles */
+        @media print {
+            .navbar, .action-section, footer {
+                display: none;
+            }
+            
+            .main-content {
+                padding: 0;
+            }
+            
+            .header-card, .results-card, .summary-card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .college-name {
+                font-size: 1.4rem;
+            }
+            
+            th, td {
+                padding: 12px 15px;
+                font-size: 0.9rem;
+            }
+            
+            .summary-value {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" onerror="this.style.display='none'">
+            <span>GCET Results Portal</span>
+        </div>
+        <div class="nav-actions">
+            <a href="/select" class="nav-btn back">
+                <i class="fas fa-arrow-left"></i>
+                Back
+            </a>
+            <a href="{{ url_for('logout') }}" class="nav-btn logout">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <!-- Header Card -->
+        <div class="header-card">
+            <div class="college-logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" onerror="this.parentElement.innerHTML='<i class=\'fas fa-university\' style=\'font-size: 2.5rem; color: white;\'></i>'">
+            </div>
+            <div class="college-name">GEETHANJALI COLLEGE OF ENGINEERING & TECHNOLOGY</div>
+            <div class="college-tagline">...Striving Towards Perfection</div>
+            
+            <div class="result-info">
+                <div class="info-item">
+                    <div class="info-label">Hall Ticket</div>
+                    <div class="info-value">{{ htno }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Semester</div>
+                    <div class="info-value">{{ semester }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="results-card">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div class="section-title">Subject-wise Grades</div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subject Code</th>
+                            <th>Subject Name</th>
+                            <th style="text-align: center;">Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for code, name in subjects.items() %}
+                        {% set grade = grades[loop.index0] %}
+                        {% set grade_class = 'grade-f' %}
+                        {% if grade == 'O' %}{% set grade_class = 'grade-o' %}
+                        {% elif grade == 'A+' %}{% set grade_class = 'grade-a-plus' %}
+                        {% elif grade == 'A' %}{% set grade_class = 'grade-a' %}
+                        {% elif grade == 'B+' %}{% set grade_class = 'grade-b-plus' %}
+                        {% elif grade == 'B' %}{% set grade_class = 'grade-b' %}
+                        {% elif grade == 'C' %}{% set grade_class = 'grade-c' %}
+                        {% elif grade == 'Ab' %}{% set grade_class = 'grade-ab' %}
+                        {% endif %}
+                        <tr>
+                            <td><strong>{{ code }}</strong></td>
+                            <td>{{ name }}</td>
+                            <td style="text-align: center;">
+                                <span class="grade-badge {{ grade_class }}">{{ grade }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="summary-card">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div class="section-title">Performance Summary</div>
+            </div>
+            
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">SGPA</div>
+                    <div class="summary-value">{{ sgpa }}</div>
+                </div>
+                
+                {% if cgpa %}
+                <div class="summary-item">
+                    <div class="summary-label">CGPA</div>
+                    <div class="summary-value cgpa">{{ cgpa }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="summary-item" style="grid-column: span 2;">
+                    <div class="summary-label">Result Status</div>
+                    <div style="margin-top: 10px;">
+                        {% if result_status == 'PASS' %}
+                        <span class="status-badge status-pass">
+                            <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+                            PASS
+                        </span>
+                        {% else %}
+                        <span class="status-badge status-fail">
+                            <i class="fas fa-times-circle" style="margin-right: 8px;"></i>
+                            FAIL
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-section">
+            <form method="GET" action="{{ url_for('download_pdf', semester='sem'+semester) }}" style="display: inline;">
+                <button type="submit" class="action-btn btn-download">
+                    <i class="fas fa-file-pdf"></i>
+                    Download PDF
+                </button>
+            </form>
+            
+            <a href="/select" class="action-btn btn-back">
+                <i class="fas fa-arrow-left"></i>
+                Back to Selection
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        <div class="developer">THOTA RAHUL</div>
+        <div class="dept">STUDENT DEVELOPER | CSE DEPARTMENT</div>
+    </footer>
+</body>
+</html>
